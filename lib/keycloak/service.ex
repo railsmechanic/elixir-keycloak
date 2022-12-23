@@ -2,7 +2,6 @@ defmodule Keycloak.Service do
   @moduledoc """
   Module that handles authorization flow for a client credentials grant
 
-
   ## Example
 
       client = Keycloak.Service.get_token!()
@@ -13,7 +12,6 @@ defmodule Keycloak.Service do
           {:error, _} -> []
         end
   """
-
   alias OAuth2.Client
 
   @doc """
@@ -21,14 +19,14 @@ defmodule Keycloak.Service do
 
   ### Example
 
-    iex> Keycloak.Service.get_token!()
-    %OAuth2.Client{
+    iex> Keycloak.Service.get_token()
+    {:ok, %OAuth2.Client{
       token: %OAuth2.AccessToken{},
       expires_at: nil,
       other_params: %{},
       refresh_token: nil,
       token_type: "Bearer"
-    }
+    }}
   """
   @spec get_token(keyword()) :: {:ok, Client.t()} | {:error, Client.t()}
   def get_token(params \\ []) do

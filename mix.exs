@@ -4,8 +4,8 @@ defmodule Keycloak.Mixfile do
   def project do
     [
       app: :keycloak,
-      version: "1.1.0",
-      elixir: "~> 1.6",
+      version: "1.2.0",
+      elixir: "~> 1.12",
       name: "keycloak",
       description: "Library for interacting with a Keycloak authorization server",
       package: package(),
@@ -25,8 +25,7 @@ defmodule Keycloak.Mixfile do
       {:joken, "~> 2.0"},
       {:oauth2, "~> 2.0"},
       {:plug, "~> 1.4"},
-      {:poison, "~> 4.0"},
-      {:credo, "~> 1.4", only: [:dev, :test], runtime: false},
+      {:jason, "~> 1.4"},
       {:ex_doc, "~> 0.26", only: :dev, runtime: false},
       {:rexbug, "~> 1.0", only: :dev, runtime: false}
     ]

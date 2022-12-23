@@ -28,21 +28,28 @@ defmodule Keycloak.Plug.VerifyToken do
   """
   @spec call(Plug.Conn.t(), keyword()) :: Plug.Conn.t()
   def call(conn, _) do
-    token =
-      conn
-      |> get_req_header("authorization")
-      |> fetch_token()
-
-    case verify_token(token) do
+    conn
+    |> get_req_header("authorization")
+    |> fetch_token()
+    |> verify_token()
+    |> case do
       {:ok, claims} ->
-        conn
-        |> assign(:claims, claims)
+        assign(conn, :claims, claims)
 
       {:error, message} ->
-        conn
-        |> put_resp_content_type("application/vnd.api+json")
-        |> send_resp(401, Poison.encode!(%{error: message}))
-        |> halt()
+        case Jason.encode(%{error: message}) do
+          {:ok, encoded_error} ->
+            conn
+            |> put_resp_content_type("application/vnd.api+json")
+            |> send_resp(401, encoded_error)
+            |> halt()
+
+          _unable_to_encode_error ->
+            conn
+            |> put_resp_content_type("application/vnd.api+json")
+            |> send_resp(401, ~s({"error": "Token verification failed"}))
+            |> halt()
+        end
     end
   end
 
@@ -53,7 +60,6 @@ defmodule Keycloak.Plug.VerifyToken do
   Attemps to verify that the passed `token` can be trusted.
 
   ## Example
-
       iex> verify_token(nil)
       {:error, :not_authenticated}
 
@@ -61,18 +67,17 @@ defmodule Keycloak.Plug.VerifyToken do
       {:error, :signature_error}
   """
   @spec verify_token(String.t() | nil) :: {atom(), Joken.Token.t() | atom()}
-  def verify_token(nil), do: {:error, :not_authenticated}
+  def verify_token(token) when is_binary(token),
+    do: verify_and_validate(token, signer_key())
 
-  def verify_token(token) do
-    verify_and_validate(token, signer_key())
-  end
+  def verify_token(_token),
+    do: {:error, :not_authenticated}
 
   @doc """
   Fetches the token from the `Authorization` headers array, attempting
   to match the token in the format `Bearer <token>`.
 
   ### Example
-
       iex> fetch_token([])
       nil
 
@@ -87,8 +92,11 @@ defmodule Keycloak.Plug.VerifyToken do
 
   def fetch_token([token | tail]) do
     case Regex.run(@regex, token) do
-      [_, token] -> String.trim(token)
-      nil -> fetch_token(tail)
+      [_, token] ->
+        String.trim(token)
+
+      nil ->
+        fetch_token(tail)
     end
   end
 
@@ -96,7 +104,6 @@ defmodule Keycloak.Plug.VerifyToken do
   Returns the configured `public_key` or `hmac` key used to sign the token.
 
   ### Example
-
       iex> %Joken.Signer{} = signer_key()
       %Joken.Signer{
               alg: "HS512",
